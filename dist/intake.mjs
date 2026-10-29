@@ -9,3 +9,10 @@ export function recordsToCsv(records){
  const rows=[['ID','Tipo','Solicitud','Estado','Próxima acción','Borrador'],...records.map(r=>[r.id,r.topic,r.text,r.status,r.nextAction,r.draft])];
  return '\uFEFF'+rows.map(row=>row.map(cell).join(';')).join('\r\n');
 }
+
+export const contactEmail='nexotopo@outlook.com';
+export function enquiryLinks(brief){
+ const body=String(brief).trim();if(!body||body.length>5000)throw new Error('Prepara una consulta de hasta 5.000 caracteres.');
+ const subject='Consulta de proyecto · Nexotopo';
+ return {mailto:`mailto:${contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,outlook:`https://outlook.live.com/mail/0/deeplink/compose?to=${encodeURIComponent(contactEmail)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`};
+}
