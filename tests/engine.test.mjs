@@ -1,0 +1,13 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {analyze,estimate,examples} from '../dist/engine.mjs';
+test('all demonstration trades produce complete job briefs',()=>{for(const [trade,text] of Object.entries(examples)){const a=analyze(text);assert.equal(a.trade,trade);for(const k of ['summary','problem','urgency','safety','response'])assert.ok(a[k]);for(const k of ['materials','questions','steps'])assert.ok(a[k].length>=3);}});
+test('electrical hazards stop normal repair steps',()=>{let a=analyze(examples.electrical);assert.equal(a.urgency,'Immediate safety review');assert.match(a.steps[0],/Stop using/);});
+test('negated hazards do not escalate normal pool request',()=>assert.equal(analyze(examples.pool).urgency,'Routine assessment'));
+test('unknown requests do not invent a diagnosis',()=>assert.equal(analyze('Please help with an unusual equipment problem in our building.').trade,'general'));
+test('validation and explicit trade selection',()=>{assert.throws(()=>analyze('short'));assert.throws(()=>analyze('x'.repeat(6001)));assert.equal(analyze(examples.pool,'plumbing').trade,'plumbing');});
+test('quote calculates editable example and tax',()=>assert.deepEqual(estimate({hours:2,rate:45,materials:60,callout:25,tax:21}),{hours:2,rate:45,materials:60,callout:25,tax:21,subtotal:175,taxAmount:36.75,total:211.75}));
+test('invalid quote values are rejected',()=>{for(const x of [-1,NaN,Infinity])assert.throws(()=>estimate({hours:x,rate:45,materials:0,callout:0,tax:21}));assert.throws(()=>estimate({hours:1,rate:1,materials:0,callout:0,tax:101}));});
+import {parseAI} from '../dist/ai-format.mjs';
+test('actual model markdown can be normalised without discarding sections',()=>{const raw='**Summary:** Weak pool flow\n**Problem:** Restriction possible\n**Materials:**\n- Gauge\n**Questions:**\n- What model?\n**Steps:**\n1. Arrange inspection\n**Quote Scope:** Inspection only\n**Response:** Thank you for the request.';const b=parseAI(raw);assert.equal(b.summary,'Weak pool flow');assert.deepEqual(b.steps,['Arrange inspection']);assert.equal(b.quoteScope,'Inspection only');});
+test('invalid AI structures never become selectable customer replies',()=>{assert.equal(parseAI('partial text'),null);assert.equal(parseAI('{"summary":"missing required fields"}'),null);});

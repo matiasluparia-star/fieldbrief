@@ -1,5 +1,3 @@
-# FieldBrief
+# Recovery
 
-Recovered original project source on 29 October 2026. Independent cross-sector portfolio prototype using fictional examples.
-
-Live demo: https://fieldbrief-service-assistant.validraven5.chatgpt.site/
+Original FieldBrief source recovered and expanded to digital, creative, administrative and physical services on 29 October 2026. Live demo: https://fieldbrief-service-assistant.validraven5.chatgpt.site/
