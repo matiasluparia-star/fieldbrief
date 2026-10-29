@@ -74,3 +74,9 @@ MIT for project code. External libraries and model retain their respective licen
 
 ## Cross-sector support
 Four added templates cover software, automation, design and business administration. Other sectors use a general scoping workflow, with optional experimental local AI. This is not universal specialist expertise. Physical materials become resources in digital engagements.
+
+## Commercial service preview
+
+Spanish landing page: https://fieldbrief-service-assistant.validraven5.chatgpt.site/servicios.html
+
+A cross-sector service offer with a fictional interactive intake/follow-up demonstration. The enquiry form only prepares a local draft; real enquiry delivery awaits an owner-approved contact channel. See [Studio notes](docs/STUDIO.md) for scope, validation and launch requirements. `npm test` now runs twelve checks.
