@@ -1,4 +1,4 @@
-# FieldBrief
+# FieldBrief · Nexotopo portfolio
 ### From customer request to a service job brief.
 
 A working portfolio prototype for service businesses across sectors: software development, automation, design, business administration, maintenance and physical trades. It converts incoming requests into an organised assessment, questions, a quote structure and an editable customer reply.
@@ -15,7 +15,7 @@ A working portfolio prototype for service businesses across sectors: software de
 ## What works
 
 - Free-text request capture, automatic or explicit service category.
-- Nine fictional examples spanning pool, irrigation, plumbing, electrical and renovation work.
+- Nine fictional examples spanning software, automation, design, administration and physical trades.
 - Immediate, rule-based job summary, provisional causes, urgency, materials, questions, next steps and customer reply.
 - Real optional on-device language model: Qwen2.5-0.5B-Instruct with Transformers.js / ONNX Runtime in a Web Worker. Generates an alternative full assessment and reply, validated before a reply can be selected.
 - Editable estimate: labour, materials, call-out fee, tax and EUR/USD/GBP display. All defaults are illustrative, not market rates or AI price predictions.
@@ -75,8 +75,8 @@ MIT for project code. External libraries and model retain their respective licen
 ## Cross-sector support
 Four added templates cover software, automation, design and business administration. Other sectors use a general scoping workflow, with optional experimental local AI. This is not universal specialist expertise. Physical materials become resources in digital engagements.
 
-## Commercial service preview
+## Nexotopo commercial service preview
 
 Spanish landing page: https://fieldbrief-service-assistant.validraven5.chatgpt.site/servicios.html
 
-A cross-sector service offer with a fictional interactive intake/follow-up demonstration. The enquiry form only prepares a local draft; real enquiry delivery awaits an owner-approved contact channel. See [Studio notes](docs/STUDIO.md) for scope, validation and launch requirements. `npm test` now runs twelve checks.
+A cross-sector service offer with a fictional interactive intake/follow-up demonstration. The enquiry form only prepares a local draft; real enquiry delivery awaits an owner-approved contact channel. See [Studio notes](docs/STUDIO.md) for scope, validation and launch requirements. The commercial demo includes software and document workflows and safe CSV export for Excel. `npm test` runs fourteen checks. Nexotopo is a provisional brand; no Gmail address or trademark registration is claimed.
