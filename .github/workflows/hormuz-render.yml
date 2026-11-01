@@ -9,89 +9,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install FFmpeg and browser resolver
+      - name: Install FFmpeg
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg
-          python -m pip install -U playwright
-          python -m playwright install --with-deps chromium
-      - name: Resolve and download source media
+      - name: Download existing source media
         shell: bash
         run: |
           set -euxo pipefail
           mkdir -p work
-          cat > work/resolve.py <<'PY'
-          import asyncio, sys
-          from playwright.async_api import async_playwright
-
-          async def main():
-              page_url, out_path = sys.argv[1], sys.argv[2]
-              found=[]
-              def keep(u):
-                  if not u or not u.startswith('http'): return
-                  keys=('m3u8','proxy/remux','published_projects','descriptusercontent.com','storage.googleapis.com','media-export')
-                  if any(k in u for k in keys) and u not in found:
-                      found.append(u)
-              async with async_playwright() as p:
-                  browser=await p.chromium.launch(headless=True)
-                  ctx=await browser.new_context(viewport={"width":1280,"height":900})
-                  page=await ctx.new_page()
-                  page.on('request', lambda req: keep(req.url))
-                  page.on('response', lambda res: keep(res.url))
-                  await page.goto(page_url, wait_until='domcontentloaded', timeout=90000)
-                  await page.wait_for_timeout(4000)
-                  # Trigger playback where possible so HLS/media requests appear.
-                  for frame in page.frames:
-                      try:
-                          vals=await frame.eval_on_selector_all('video,audio,source', "els => els.flatMap(e => [e.src, e.currentSrc]).filter(Boolean)")
-                          for v in vals: keep(v)
-                      except Exception: pass
-                      try:
-                          await frame.evaluate("() => { document.querySelectorAll('video,audio').forEach(m => { m.muted=true; m.play().catch(()=>{}); }); }")
-                      except Exception: pass
-                  for label in ['Play','play']:
-                      try:
-                          btn=page.get_by_role('button', name=label).first
-                          if await btn.count(): await btn.click(timeout=2000)
-                      except Exception: pass
-                  await page.wait_for_timeout(6000)
-                  try:
-                      vals=await page.evaluate("performance.getEntriesByType('resource').map(e=>e.name)")
-                      for v in vals: keep(v)
-                  except Exception: pass
-                  await browser.close()
-              # Prefer direct remux/mp4, then HLS endpoint/m3u8.
-              def score(u):
-                  if 'proxy/remux' in u: return 0
-                  if '.mp4' in u or '.m4a' in u: return 1
-                  if 'published_projects' in u and '/hls' in u: return 2
-                  if 'm3u8' in u: return 3
-                  return 9
-              found.sort(key=score)
-              print('CANDIDATES:')
-              print('\n'.join(found))
-              if not found:
-                  raise SystemExit('No playable media URL captured')
-              open(out_path,'w').write(found[0])
-          asyncio.run(main())
-          PY
           cd work
-          python resolve.py 'https://share.descript.com/view/WZVRGD5jUqx' map.url
-          python resolve.py 'https://share.descript.com/view/r3ja061sQMg' tanker.url
-          python resolve.py 'https://share.descript.com/view/WY1WBqc9nln' doha.url
-          python resolve.py 'https://share.descript.com/view/Wygyb5qwPVc' hours48.url
-          python resolve.py 'https://share.descript.com/view/KEjG0SVMYW7' end.url
-          python resolve.py 'https://share.descript.com/view/iZtZw88zFNm' voice.url
-          python resolve.py 'https://share.descript.com/view/kC1tnBmzbYI' music.url
-          ffmpeg -y -i "$(cat map.url)" -map 0:v:0 -an -c:v libx264 -pix_fmt yuv420p map.mp4
-          ffmpeg -y -i "$(cat tanker.url)" -map 0:v:0 -an -c:v libx264 -pix_fmt yuv420p tanker.mp4
-          ffmpeg -y -i "$(cat doha.url)" -map 0:v:0 -an -c:v libx264 -pix_fmt yuv420p doha.mp4
-          ffmpeg -y -i "$(cat hours48.url)" -map 0:v:0 -an -c:v libx264 -pix_fmt yuv420p hours48.mp4
-          ffmpeg -y -i "$(cat end.url)" -map 0:v:0 -an -c:v libx264 -pix_fmt yuv420p end.mp4
-          ffmpeg -y -i "$(cat voice.url)" -map 0:a:0 -vn -c:a aac -b:a 192k voice.m4a
-          ffmpeg -y -i "$(cat music.url)" -map 0:a:0 -vn -c:a aac -b:a 192k music.m4a
-          ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 voice.m4a
-          ls -lh *.mp4 *.m4a
+          MAP='https://api.descript.com/v2/published_projects/df59533e-b399-4955-89d3-9c5c47e1970e/hls?expiration=1793650384184&signature=78af4703c235cca854a1a8295d69928705cdf8cce182f34a8c5b1040726e22ed'
+          TANKER='https://api.descript.com/v2/published_projects/8ad28979-1ee3-43db-a3c5-d4ddb63f7374/hls?expiration=1793663999999&signature=69dfa1a34b27cbc06ab246f28b3ea719ac875b8bfb7882b14ba01f9e884c688c'
+          DOHA='https://api.descript.com/v2/published_projects/9dd3f69c-7427-4b6d-97b9-e50bc1eb99cf/hls?expiration=1793663999999&signature=e67918baf64152972b3dd3258c6459737ef343ec51e29fb92e37e1256c4e6f83'
+          HOURS='https://api.descript.com/v2/published_projects/417fbd31-c594-4c5f-a23a-a426bd1840a1/hls?expiration=1793663999999&signature=6db0f2118a3dc409ecb454d2c530189d7993b63e0824529c861644cbacb8e7e7'
+          END='https://api.descript.com/v2/published_projects/b88f6804-46b9-4fda-ac27-2710d0f4b0fb/hls?expiration=1793663999999&signature=f5526134c8d4c0856ed4460cf5d79aaffcdab2f1ff0c8a86bc4818a0e7a4796d'
+          VOICE='https://api.descript.com/v2/published_projects/f133f491-ad40-401d-94d8-9361aa951964/hls?expiration=1793663999999&signature=96663cbd7dfe064ec397bb588ed172131d4493571e62173f2c3e52356afc30f3'
+          MUSIC='https://api.descript.com/v2/published_projects/f3c2b71b-dae5-48df-9a88-6c7e2300f600/hls?expiration=1793663999999&signature=1cd3d0ef94069b1fc96c0a9ab4f1173c009d80ed85e4682dfac5f62ac3a931f5'
+          ffmpeg -y -i "$MAP" -map 0:v:0 -an -c:v libx264 -pix_fmt yuv420p map.mp4
+          ffmpeg -y -i "$TANKER" -map 0:v:0 -an -c:v libx264 -pix_fmt yuv420p tanker.mp4
+          ffmpeg -y -i "$DOHA" -map 0:v:0 -an -c:v libx264 -pix_fmt yuv420p doha.mp4
+          ffmpeg -y -i "$HOURS" -map 0:v:0 -an -c:v libx264 -pix_fmt yuv420p hours48.mp4
+          ffmpeg -y -i "$END" -map 0:v:0 -an -c:v libx264 -pix_fmt yuv420p end.mp4
+          ffmpeg -y -i "$VOICE" -map 0:a:0 -vn -c:a aac -b:a 192k voice.m4a
+          ffmpeg -y -i "$MUSIC" -map 0:a:0 -vn -c:a aac -b:a 192k music.m4a
+          echo 'SOURCE DURATIONS'
+          for f in map.mp4 tanker.mp4 doha.mp4 hours48.mp4 end.mp4 voice.m4a music.m4a; do printf '%s ' "$f"; ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$f"; done
       - name: Render final MP4
         shell: bash
         run: |
