@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>PulsoCut</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color-scheme:dark;--card:#111722;--line:#283244;--accent:#e23b3b;--muted:#93a0b5}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#07090d,#0b1018);color:#fff;min-height:100vh}main{max-width:640px;margin:auto;padding:24px 18px 48px}h1{font-size:36px;letter-spacing:-1.5px;margin:14px 0 4px}.brand{display:flex;align-items:center;gap:10px}.dot{width:12px;height:12px;background:var(--accent);border-radius:50%;box-shadow:0 0 18px #e23b3b88}.sub{color:var(--muted);margin:0 0 24px;line-height:1.4}.card{background:rgba(17,23,34,.95);border:1px solid var(--line);border-radius:20px;padding:18px;margin:14px 0}.label{font-weight:700;margin-bottom:9px;display:block}.hint{font-size:13px;color:var(--muted);margin-top:8px}input[type=file],input[type=number]{width:100%;background:#0a0f17;border:1px solid var(--line);border-radius:12px;padding:13px;color:#fff;font-size:16px}button{width:100%;border:0;border-radius:14px;padding:16px;font-size:17px;font-weight:800;background:var(--accent);color:white;margin-top:8px}button:disabled{opacity:.45}.status{white-space:pre-line;color:#d5dbea;font-size:14px;line-height:1.45;margin-top:14px}.ok{color:#74d99f}.warn{color:#ffd27d}.mini{font-size:12px;color:#6f7c91;text-align:center;margin-top:16px}
+</style>
+</head>
+<body><main>
+<div class="brand"><span class="dot"></span><h1>PulsoCut</h1></div>
+<p class="sub">Generador automático de Shorts 9:16. La duración final siempre sigue la narración.</p>
+<form id="f">
+<div class="card"><label class="label">1. Narración</label><input id="voice" name="voiceover" type="file" accept="audio/*" required><div class="hint">MP3, M4A o WAV.</div></div>
+<div class="card"><label class="label">2. Imágenes y clips</label><input id="visuals" name="visuals" type="file" accept="image/*,video/*" multiple required><div class="hint">Se usan en el orden elegido y se repiten si hace falta.</div></div>
+<div class="card"><label class="label">3. Música de fondo (opcional)</label><input id="music" name="music" type="file" accept="audio/*"><div class="hint">La voz queda al frente. La música se baja automáticamente detrás.</div></div>
+<div class="card"><label class="label">4. Volumen de música (%)</label><input id="musicVolume" name="musicVolume" type="number" inputmode="decimal" min="0" max="25" step="1" value="10"><div class="hint">10% por defecto. Recomendado: 8–12%.</div></div>
+<div class="card"><label class="label">5. Cambio visual cada</label><input id="interval" name="interval" type="number" inputmode="decimal" min="1.5" max="8" step="0.5" value="3"><div class="hint">Para PulsoGlobal recomiendo 2,5–3 segundos.</div></div>
+<button id="go">GENERAR MP4</button>
+<div id="status" class="status"></div>
+</form>
+<p class="mini">MVP 0.2 · 720×1280 · H.264 + AAC · música al 10% por defecto</p>
+<script>
+const f=document.querySelector('#f'),go=document.querySelector('#go'),status=document.querySelector('#status');
+f.addEventListener('submit',async e=>{
+ e.preventDefault();
+ const v=document.querySelector('#voice').files[0],xs=[...document.querySelector('#visuals').files];
+ if(!v||!xs.length)return;
+ const fd=new FormData();fd.append('voiceover',v);xs.forEach(x=>fd.append('visuals',x));const music=document.querySelector('#music').files[0];if(music)fd.append('music',music);fd.append('musicVolume',document.querySelector('#musicVolume').value);fd.append('interval',document.querySelector('#interval').value);
+ go.disabled=true;status.className='status warn';status.textContent='Procesando…\nMontando escenas, mezclando audio y verificando la duración.';
+ try{
+  const r=await fetch('/render',{method:'POST',body:fd});
+  if(!r.ok){const j=await r.json().catch(()=>({error:'Error de render'}));throw new Error(j.error)}
+  const blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='PulsoCut-output.mp4';document.body.appendChild(a);a.click();a.remove();
+  status.className='status ok';status.textContent='✓ Vídeo generado y duración verificada. Se inició la descarga del MP4.';
+  setTimeout(()=>URL.revokeObjectURL(url),30000);
+ }catch(err){status.className='status';status.textContent='Error: '+err.message}
+ finally{go.disabled=false}
+});
+</script>
+</main></body></html>
