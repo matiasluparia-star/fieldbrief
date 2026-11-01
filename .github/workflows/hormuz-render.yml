@@ -9,38 +9,89 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install tools
+      - name: Install FFmpeg and browser resolver
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg
-          python -m pip install -U yt-dlp
-      - name: Download source media
+          python -m pip install -U playwright
+          python -m playwright install --with-deps chromium
+      - name: Resolve and download source media
         shell: bash
         run: |
           set -euxo pipefail
           mkdir -p work
+          cat > work/resolve.py <<'PY'
+          import asyncio, sys
+          from playwright.async_api import async_playwright
+
+          async def main():
+              page_url, out_path = sys.argv[1], sys.argv[2]
+              found=[]
+              def keep(u):
+                  if not u or not u.startswith('http'): return
+                  keys=('m3u8','proxy/remux','published_projects','descriptusercontent.com','storage.googleapis.com','media-export')
+                  if any(k in u for k in keys) and u not in found:
+                      found.append(u)
+              async with async_playwright() as p:
+                  browser=await p.chromium.launch(headless=True)
+                  ctx=await browser.new_context(viewport={"width":1280,"height":900})
+                  page=await ctx.new_page()
+                  page.on('request', lambda req: keep(req.url))
+                  page.on('response', lambda res: keep(res.url))
+                  await page.goto(page_url, wait_until='domcontentloaded', timeout=90000)
+                  await page.wait_for_timeout(4000)
+                  # Trigger playback where possible so HLS/media requests appear.
+                  for frame in page.frames:
+                      try:
+                          vals=await frame.eval_on_selector_all('video,audio,source', "els => els.flatMap(e => [e.src, e.currentSrc]).filter(Boolean)")
+                          for v in vals: keep(v)
+                      except Exception: pass
+                      try:
+                          await frame.evaluate("() => { document.querySelectorAll('video,audio').forEach(m => { m.muted=true; m.play().catch(()=>{}); }); }")
+                      except Exception: pass
+                  for label in ['Play','play']:
+                      try:
+                          btn=page.get_by_role('button', name=label).first
+                          if await btn.count(): await btn.click(timeout=2000)
+                      except Exception: pass
+                  await page.wait_for_timeout(6000)
+                  try:
+                      vals=await page.evaluate("performance.getEntriesByType('resource').map(e=>e.name)")
+                      for v in vals: keep(v)
+                  except Exception: pass
+                  await browser.close()
+              # Prefer direct remux/mp4, then HLS endpoint/m3u8.
+              def score(u):
+                  if 'proxy/remux' in u: return 0
+                  if '.mp4' in u or '.m4a' in u: return 1
+                  if 'published_projects' in u and '/hls' in u: return 2
+                  if 'm3u8' in u: return 3
+                  return 9
+              found.sort(key=score)
+              print('CANDIDATES:')
+              print('\n'.join(found))
+              if not found:
+                  raise SystemExit('No playable media URL captured')
+              open(out_path,'w').write(found[0])
+          asyncio.run(main())
+          PY
           cd work
-          yt-dlp --no-playlist --merge-output-format mp4 -o 'map.%(ext)s' 'https://share.descript.com/view/WZVRGD5jUqx'
-          yt-dlp --no-playlist --merge-output-format mp4 -o 'tanker.%(ext)s' 'https://share.descript.com/view/r3ja061sQMg'
-          yt-dlp --no-playlist --merge-output-format mp4 -o 'doha.%(ext)s' 'https://share.descript.com/view/WY1WBqc9nln'
-          yt-dlp --no-playlist --merge-output-format mp4 -o 'hours48.%(ext)s' 'https://share.descript.com/view/Wygyb5qwPVc'
-          yt-dlp --no-playlist --merge-output-format mp4 -o 'end.%(ext)s' 'https://share.descript.com/view/KEjG0SVMYW7'
-          yt-dlp --no-playlist -x --audio-format m4a -o 'voice.%(ext)s' 'https://share.descript.com/view/iZtZw88zFNm'
-          yt-dlp --no-playlist -x --audio-format m4a -o 'music.%(ext)s' 'https://share.descript.com/view/kC1tnBmzbYI'
-          ls -lh
-      - name: Normalize names
-        shell: bash
-        run: |
-          set -euxo pipefail
-          cd work
-          mv "$(ls map.* | head -1)" map.mp4
-          mv "$(ls tanker.* | head -1)" tanker.mp4
-          mv "$(ls doha.* | head -1)" doha.mp4
-          mv "$(ls hours48.* | head -1)" hours48.mp4
-          mv "$(ls end.* | head -1)" end.mp4
-          mv "$(ls voice.* | head -1)" voice.m4a
-          mv "$(ls music.* | head -1)" music.m4a
+          python resolve.py 'https://share.descript.com/view/WZVRGD5jUqx' map.url
+          python resolve.py 'https://share.descript.com/view/r3ja061sQMg' tanker.url
+          python resolve.py 'https://share.descript.com/view/WY1WBqc9nln' doha.url
+          python resolve.py 'https://share.descript.com/view/Wygyb5qwPVc' hours48.url
+          python resolve.py 'https://share.descript.com/view/KEjG0SVMYW7' end.url
+          python resolve.py 'https://share.descript.com/view/iZtZw88zFNm' voice.url
+          python resolve.py 'https://share.descript.com/view/kC1tnBmzbYI' music.url
+          ffmpeg -y -i "$(cat map.url)" -map 0:v:0 -an -c:v libx264 -pix_fmt yuv420p map.mp4
+          ffmpeg -y -i "$(cat tanker.url)" -map 0:v:0 -an -c:v libx264 -pix_fmt yuv420p tanker.mp4
+          ffmpeg -y -i "$(cat doha.url)" -map 0:v:0 -an -c:v libx264 -pix_fmt yuv420p doha.mp4
+          ffmpeg -y -i "$(cat hours48.url)" -map 0:v:0 -an -c:v libx264 -pix_fmt yuv420p hours48.mp4
+          ffmpeg -y -i "$(cat end.url)" -map 0:v:0 -an -c:v libx264 -pix_fmt yuv420p end.mp4
+          ffmpeg -y -i "$(cat voice.url)" -map 0:a:0 -vn -c:a aac -b:a 192k voice.m4a
+          ffmpeg -y -i "$(cat music.url)" -map 0:a:0 -vn -c:a aac -b:a 192k music.m4a
           ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 voice.m4a
+          ls -lh *.mp4 *.m4a
       - name: Render final MP4
         shell: bash
         run: |
@@ -77,6 +128,7 @@ jobs:
           set -euxo pipefail
           cd work
           ffprobe -v error -show_streams -show_format PulsoGlobal_003_Hormuz_FINAL.mp4 > ffprobe.txt
+          ffprobe -v error -show_entries stream=index,codec_type,duration,start_time -of json PulsoGlobal_003_Hormuz_FINAL.mp4 > streams.json
           ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 PulsoGlobal_003_Hormuz_FINAL.mp4 | tee duration.txt
           for t in 5 10 20 30 38; do ffmpeg -y -ss "$t" -i PulsoGlobal_003_Hormuz_FINAL.mp4 -frames:v 1 "qc_${t}.jpg"; done
       - name: Upload final and QC
@@ -86,6 +138,7 @@ jobs:
           path: |
             work/PulsoGlobal_003_Hormuz_FINAL.mp4
             work/ffprobe.txt
+            work/streams.json
             work/duration.txt
             work/qc_5.jpg
             work/qc_10.jpg
