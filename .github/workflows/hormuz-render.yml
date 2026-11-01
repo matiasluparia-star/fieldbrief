@@ -13,71 +13,78 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg
-      - name: Download existing source media
+      - name: Download original Runway assets
         shell: bash
         run: |
           set -euxo pipefail
           mkdir -p work
           cd work
-          MAP='https://api.descript.com/v2/published_projects/df59533e-b399-4955-89d3-9c5c47e1970e/hls?expiration=1793650384184&signature=78af4703c235cca854a1a8295d69928705cdf8cce182f34a8c5b1040726e22ed'
-          TANKER='https://api.descript.com/v2/published_projects/8ad28979-1ee3-43db-a3c5-d4ddb63f7374/hls?expiration=1793663999999&signature=69dfa1a34b27cbc06ab246f28b3ea719ac875b8bfb7882b14ba01f9e884c688c'
-          DOHA='https://api.descript.com/v2/published_projects/9dd3f69c-7427-4b6d-97b9-e50bc1eb99cf/hls?expiration=1793663999999&signature=e67918baf64152972b3dd3258c6459737ef343ec51e29fb92e37e1256c4e6f83'
-          HOURS='https://api.descript.com/v2/published_projects/417fbd31-c594-4c5f-a23a-a426bd1840a1/hls?expiration=1793663999999&signature=6db0f2118a3dc409ecb454d2c530189d7993b63e0824529c861644cbacb8e7e7'
-          END='https://api.descript.com/v2/published_projects/b88f6804-46b9-4fda-ac27-2710d0f4b0fb/hls?expiration=1793663999999&signature=f5526134c8d4c0856ed4460cf5d79aaffcdab2f1ff0c8a86bc4818a0e7a4796d'
-          VOICE='https://api.descript.com/v2/published_projects/f133f491-ad40-401d-94d8-9361aa951964/hls?expiration=1793663999999&signature=96663cbd7dfe064ec397bb588ed172131d4493571e62173f2c3e52356afc30f3'
-          MUSIC='https://api.descript.com/v2/published_projects/f3c2b71b-dae5-48df-9a88-6c7e2300f600/hls?expiration=1793663999999&signature=1cd3d0ef94069b1fc96c0a9ab4f1173c009d80ed85e4682dfac5f62ac3a931f5'
-          ffmpeg -y -i "$MAP" -map 0:v:0 -an -c:v libx264 -pix_fmt yuv420p map.mp4
-          ffmpeg -y -i "$TANKER" -map 0:v:0 -an -c:v libx264 -pix_fmt yuv420p tanker.mp4
-          ffmpeg -y -i "$DOHA" -map 0:v:0 -an -c:v libx264 -pix_fmt yuv420p doha.mp4
-          ffmpeg -y -i "$HOURS" -map 0:v:0 -an -c:v libx264 -pix_fmt yuv420p hours48.mp4
-          ffmpeg -y -i "$END" -map 0:v:0 -an -c:v libx264 -pix_fmt yuv420p end.mp4
-          ffmpeg -y -i "$VOICE" -map 0:a:0 -vn -c:a aac -b:a 192k voice.m4a
-          ffmpeg -y -i "$MUSIC" -map 0:a:0 -vn -c:a aac -b:a 192k music.m4a
+          MAP='https://dnznrvs05pmza.cloudfront.net/seedance_2_mini/cgt-20261102005107-dgkcr/Animate_this_editorial_map_as_a_clean_news_explainer__Slowly_push_in_toward_the_Strait_of_Hormuz__ma.mp4?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiY2UwMTgzNjZkZGE1MDY0MSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc5MzY5Njg3MH0.1Vj0LcUU7IckIRnYk5ntDEBrdFCwyINkU0QgxQ_DNPs'
+          TANKER='https://dnznrvs05pmza.cloudfront.net/seedance_2_mini/cgt-20261102005106-6mshv/Animate_this_illustrated_oil_tanker_scene_as_a_premium_news_explainer__Tankers_move_steadily_through.mp4?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiMGM2NmFlMzU0NDA3MzVkOSIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc5MzY2ODY2MX0.LjVTL71bFn9qsMLqgi-8JA_mF2rOnARRXmIisLv2Bgs'
+          DOHA='https://dnznrvs05pmza.cloudfront.net/gemini/gemini-3.1-flash-lite-image/images/32d3bcb0-b4ce-432b-a40c-93e7acf78263/74c4bc61-0d8f-4001-9c92-661f34b43450/Vertical_9_16_minimalist_news_infographic_card_in_Spanish__D.jpg?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiMTgwOWU3MGVlYmEyMjdhZiIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc5MzczNzM1OH0.jfPF0MoRUWm_8ZIvy-oEkP2ZQWKKXxpGvQVyhP8U0tA'
+          HOURS='https://dnznrvs05pmza.cloudfront.net/gemini/gemini-3.1-flash-lite-image/images/a0f4c62c-f420-4890-a5c8-7267ef3a4403/dc9637d0-a64c-4608-85c4-2a7b462c44eb/Vertical_9_16_minimalist_Spanish_news_infographic__Dark_navy.jpg?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiMTUyMDZkYzdhYzRiMjhjZiIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc5MzY5Nzk5MX0.b0SstL4wCdmQEZoNR6ZJoX1koFbLeyYl2nd3-W2_YjI'
+          END='https://dnznrvs05pmza.cloudfront.net/gemini/gemini-3.1-flash-lite-image/images/6670e972-f96b-4326-bb97-d740d3565869/c6cc422b-a2e9-47bd-b87f-e377feb6101e/Vertical_9_16_minimalist_Spanish_news_end_card__Dark_charcoa.jpg?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiNTg3NWU3YjEwYjdlZmY1NiIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc5MzY5MzIzM30.pOcy_fM0cuvOY_kuNQXuQUkf7GmN9q6XEptJkCZ_Ikg'
+          VOICE='https://dnznrvs05pmza.cloudfront.net/text_to_speech/481dfd38-4fe7-46b9-b074-f6392950201d/PulsoGlobal_003_Hormuz_voiceover.mp3?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiNzk4M2Q1NjczYTYzNWM5ZCIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc5MzY1MjU4M30.OA-ksrHPOqgnwOt2Os9v4lcuYC6dLimaUmHKe_P8dU0'
+          MUSIC='https://dnznrvs05pmza.cloudfront.net/lyria3-clip/82af4166-5bc6-4358-9bbc-ea0c36638ffd/PulsoGlobal_002_background_music.mp3?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiZDMyZThiYTEwNjg0Njk3OCIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc5MzcwMjE3N30.7RdAod2KEgkdP6ULPzivz9hG4Jx7hgBeQTIWcx45t2k'
+          curl -L --fail --retry 3 "$MAP" -o map.mp4
+          curl -L --fail --retry 3 "$TANKER" -o tanker.mp4
+          curl -L --fail --retry 3 "$DOHA" -o doha.jpg
+          curl -L --fail --retry 3 "$HOURS" -o hours48.jpg
+          curl -L --fail --retry 3 "$END" -o end.jpg
+          curl -L --fail --retry 3 "$VOICE" -o voice.mp3
+          curl -L --fail --retry 3 "$MUSIC" -o music.mp3
+          file map.mp4 tanker.mp4 doha.jpg hours48.jpg end.jpg voice.mp3 music.mp3
           echo 'SOURCE DURATIONS'
-          for f in map.mp4 tanker.mp4 doha.mp4 hours48.mp4 end.mp4 voice.m4a music.m4a; do printf '%s ' "$f"; ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$f"; done
+          for f in map.mp4 tanker.mp4 voice.mp3 music.mp3; do printf '%s ' "$f"; ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$f"; done
       - name: Render final MP4
         shell: bash
         run: |
           set -euxo pipefail
           cd work
-          DUR=38.817959
+          DUR=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 voice.mp3)
+          END_DUR=$(python -c "d=float('$DUR'); print(max(0.5,d-35.5))")
+          echo "Narration duration: $DUR; end-card duration: $END_DUR"
           ffmpeg -y \
-            -i map.mp4 -i tanker.mp4 -i doha.mp4 -i hours48.mp4 -i end.mp4 \
-            -i voice.m4a -stream_loop -1 -i music.m4a \
+            -i map.mp4 -i tanker.mp4 \
+            -loop 1 -framerate 60 -i doha.jpg \
+            -loop 1 -framerate 60 -i hours48.jpg \
+            -loop 1 -framerate 60 -i end.jpg \
+            -i voice.mp3 -stream_loop -1 -i music.mp3 \
             -filter_complex "\
-            [0:v]trim=0:3,setpts=PTS-STARTPTS,scale=850:1512,crop=720:1280:x='65+20*sin(t*0.8)':y='110+25*cos(t*0.7)',fps=30[v0];\
-            [1:v]trim=0:3,setpts=PTS-STARTPTS,scale=860:1529,crop=720:1280:x='80+25*cos(t*0.9)':y='120+20*sin(t*0.8)',fps=30[v1];\
-            [0:v]trim=2:5,setpts=PTS-STARTPTS,scale=880:1564,crop=720:1280:x='95+30*sin(t*0.6)':y='135+35*sin(t*0.5)',fps=30[v2];\
-            [2:v]trim=0:1,setpts=PTS-STARTPTS,tpad=stop_mode=clone:stop_duration=2,scale=720:1280,fps=30[v3];\
-            [0:v]trim=4:7,setpts=PTS-STARTPTS,scale=900:1600,crop=720:1280:x='110+35*cos(t*0.65)':y='150+25*sin(t*0.75)',fps=30[v4];\
-            [1:v]trim=2:5,setpts=PTS-STARTPTS,scale=900:1600,crop=720:1280:x='110+25*sin(t*0.85)':y='150+30*cos(t*0.6)',fps=30[v5];\
-            [3:v]trim=0:1,setpts=PTS-STARTPTS,tpad=stop_mode=clone:stop_duration=2,scale=720:1280,fps=30[v6];\
-            [0:v]trim=1:4,setpts=PTS-STARTPTS,scale=870:1547,crop=720:1280:x='75+20*cos(t*0.7)':y='130+30*sin(t*0.65)',fps=30[v7];\
-            [1:v]trim=0:3,setpts=PTS-STARTPTS,scale=880:1564,crop=720:1280:x='100+30*cos(t*0.75)':y='140+20*sin(t*0.9)',fps=30[v8];\
-            [0:v]trim=5:8,setpts=PTS-STARTPTS,scale=920:1636,crop=720:1280:x='120+35*sin(t*0.55)':y='170+35*cos(t*0.55)',fps=30[v9];\
-            [1:v]trim=3:6,setpts=PTS-STARTPTS,scale=920:1636,crop=720:1280:x='115+35*sin(t*0.7)':y='175+25*cos(t*0.7)',fps=30[v10];\
-            [0:v]trim=0:2.5,setpts=PTS-STARTPTS,scale=860:1529,crop=720:1280:x='70+25*sin(t*0.9)':y='125+25*cos(t*0.8)',fps=30[v11];\
-            [4:v]trim=0:1,setpts=PTS-STARTPTS,tpad=stop_mode=clone:stop_duration=2.317959,scale=720:1280,fps=30[v12];\
+            [0:v]trim=start=0:end=3,setpts=PTS-STARTPTS,scale=850:1512,crop=720:1280:x='65+20*sin(t*0.8)':y='110+25*cos(t*0.7)',fps=60[v0];\
+            [1:v]trim=start=0:end=3,setpts=PTS-STARTPTS,scale=860:1529,crop=720:1280:x='80+25*cos(t*0.9)':y='120+20*sin(t*0.8)',fps=60[v1];\
+            [0:v]trim=start=2:end=5,setpts=PTS-STARTPTS,scale=880:1564,crop=720:1280:x='95+30*sin(t*0.6)':y='135+35*sin(t*0.5)',fps=60[v2];\
+            [2:v]trim=duration=3,setpts=PTS-STARTPTS,scale=760:-2,crop=720:1280:x='20+10*sin(t*0.6)':y='(ih-oh)/2+8*cos(t*0.5)',fps=60[v3];\
+            [0:v]trim=start=4:end=7,setpts=PTS-STARTPTS,scale=900:1600,crop=720:1280:x='110+35*cos(t*0.65)':y='150+25*sin(t*0.75)',fps=60[v4];\
+            [1:v]trim=start=2:end=5,setpts=PTS-STARTPTS,scale=900:1600,crop=720:1280:x='110+25*sin(t*0.85)':y='150+30*cos(t*0.6)',fps=60[v5];\
+            [3:v]trim=duration=3,setpts=PTS-STARTPTS,scale=760:-2,crop=720:1280:x='20+8*cos(t*0.7)':y='(ih-oh)/2+8*sin(t*0.6)',fps=60[v6];\
+            [0:v]trim=start=1:end=4,setpts=PTS-STARTPTS,scale=870:1547,crop=720:1280:x='75+20*cos(t*0.7)':y='130+30*sin(t*0.65)',fps=60[v7];\
+            [1:v]trim=start=0:end=3,setpts=PTS-STARTPTS,scale=880:1564,crop=720:1280:x='100+30*cos(t*0.75)':y='140+20*sin(t*0.9)',fps=60[v8];\
+            [0:v]trim=start=5:end=8,setpts=PTS-STARTPTS,scale=920:1636,crop=720:1280:x='120+35*sin(t*0.55)':y='170+35*cos(t*0.55)',fps=60[v9];\
+            [1:v]trim=start=3:end=6,setpts=PTS-STARTPTS,scale=920:1636,crop=720:1280:x='115+35*sin(t*0.7)':y='175+25*cos(t*0.7)',fps=60[v10];\
+            [0:v]trim=start=0:end=2.5,setpts=PTS-STARTPTS,scale=860:1529,crop=720:1280:x='70+25*sin(t*0.9)':y='125+25*cos(t*0.8)',fps=60[v11];\
+            [4:v]trim=duration=${END_DUR},setpts=PTS-STARTPTS,scale=760:-2,crop=720:1280:x='20+7*sin(t*0.5)':y='(ih-oh)/2+7*cos(t*0.5)',fps=60[v12];\
             [v0][v1][v2][v3][v4][v5][v6][v7][v8][v9][v10][v11][v12]concat=n=13:v=1:a=0[v];\
-            [5:a]atrim=0:${DUR},asetpts=PTS-STARTPTS[voice];\
-            [6:a]atrim=0:${DUR},asetpts=PTS-STARTPTS,volume=0.09[music];\
-            [voice][music]amix=inputs=2:duration=first:dropout_transition=2[a]" \
+            [5:a]atrim=duration=${DUR},asetpts=PTS-STARTPTS[voice];\
+            [6:a]atrim=duration=${DUR},asetpts=PTS-STARTPTS,volume=0.09[music];\
+            [voice][music]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[a]" \
             -map '[v]' -map '[a]' -t "$DUR" \
-            -c:v libx264 -preset medium -crf 20 -pix_fmt yuv420p -r 30 \
+            -c:v libx264 -preset medium -crf 19 -pix_fmt yuv420p -r 60 \
             -c:a aac -b:a 192k -movflags +faststart PulsoGlobal_003_Hormuz_FINAL.mp4
-      - name: Verify duration and extract QC frames
+      - name: Verify real MP4 and extract QC frames
         shell: bash
         run: |
           set -euxo pipefail
           cd work
           ffprobe -v error -show_streams -show_format PulsoGlobal_003_Hormuz_FINAL.mp4 > ffprobe.txt
-          ffprobe -v error -show_entries stream=index,codec_type,duration,start_time -of json PulsoGlobal_003_Hormuz_FINAL.mp4 > streams.json
+          ffprobe -v error -show_entries stream=index,codec_type,duration,start_time,width,height,r_frame_rate -of json PulsoGlobal_003_Hormuz_FINAL.mp4 > streams.json
           ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 PulsoGlobal_003_Hormuz_FINAL.mp4 | tee duration.txt
           for t in 5 10 20 30 38; do ffmpeg -y -ss "$t" -i PulsoGlobal_003_Hormuz_FINAL.mp4 -frames:v 1 "qc_${t}.jpg"; done
+          test -s qc_5.jpg && test -s qc_10.jpg && test -s qc_20.jpg && test -s qc_30.jpg && test -s qc_38.jpg
       - name: Upload final and QC
         uses: actions/upload-artifact@v4
         with:
-          name: Hormuz-final
+          name: Hormuz-runway-final
           path: |
             work/PulsoGlobal_003_Hormuz_FINAL.mp4
             work/ffprobe.txt
