@@ -13,7 +13,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg fonts-dejavu-core
-      - name: Extract asset URLs from existing workflow
+      - name: Extract asset URLs
         shell: bash
         run: |
           set -euo pipefail
@@ -25,8 +25,8 @@ jobs:
             echo "VOTE=$(extract VOTE)"
             echo "CONGRESS=$(extract CONGRESS)"
             echo "IMPACTS=$(extract IMPACTS)"
-            echo "VOICE=$(extract VOICE)"
             echo "MUSIC=$(extract MUSIC)"
+            echo "VOICE=https://dnznrvs05pmza.cloudfront.net/text_to_speech/fb299ffe-85ef-4ccb-bc9b-91d5f232a963/PulsoGlobal_004_Trump_Midterms_voiceover_FINAL.mp3?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiY2NiMWU0ZmFkZDAxNjRmZCIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc5MzczMzc1NH0.Whnn4sfWX5MWSZc9LDNISw7xs5y5fZbNxnfsIU3dJ38"
           } >> "$GITHUB_ENV"
       - name: Download assets
         shell: bash
@@ -39,32 +39,38 @@ jobs:
           curl -L --fail --retry 3 "$IMPACTS" -o impacts.jpg
           curl -L --fail --retry 3 "$VOICE" -o voice.mp3
           curl -L --fail --retry 3 "$MUSIC" -o music.mp3
-      - name: Fast render
+      - name: Render improved final
         shell: bash
         run: |
           set -euxo pipefail
           cd work
           DUR=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 voice.mp3)
+          END_DUR=$(python - <<PY
+print(max(4.0, float('$DUR')-39.0))
+PY
+)
           FONT=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
-          ffmpeg -y -stream_loop 20 -i trump.mp4 -loop 1 -i vote.jpg -loop 1 -i congress.jpg -loop 1 -i impacts.jpg -i voice.mp3 -stream_loop -1 -i music.mp3 -filter_complex "[0:v]trim=0:8,setpts=PTS-STARTPTS,scale=720:1280,setsar=1,fps=30,drawtext=fontfile=${FONT}:text='MANANA VOTA EE.UU.':fontcolor=white:fontsize=52:borderw=3:bordercolor=black:x=(w-text_w)/2:y=90[v0];[1:v]trim=duration=10,setpts=PTS-STARTPTS,scale=720:1280,setsar=1,fps=30,drawtext=fontfile=${FONT}:text='54 MILLONES YA VOTARON':fontcolor=white:fontsize=46:borderw=3:bordercolor=black:x=(w-text_w)/2:y=100[v1];[2:v]trim=duration=12,setpts=PTS-STARTPTS,scale=720:1280,setsar=1,fps=30,drawtext=fontfile=${FONT}:text='CONTROL DEL CONGRESO':fontcolor=white:fontsize=46:borderw=3:bordercolor=black:x=(w-text_w)/2:y=100[v2];[3:v]trim=duration=9,setpts=PTS-STARTPTS,scale=720:1280,setsar=1,fps=30,drawtext=fontfile=${FONT}:text='COMERCIO  ARANCELES  IRAN  MERCADOS':fontcolor=white:fontsize=30:borderw=3:bordercolor=black:x=(w-text_w)/2:y=100[v3];[0:v]trim=0:4.9,setpts=PTS-STARTPTS,scale=720:1280,setsar=1,fps=30,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.25:t=fill,drawtext=fontfile=${FONT}:text='TRUMP MANTENDRA EL CONTROL?':fontcolor=white:fontsize=42:borderw=3:bordercolor=black:x=(w-text_w)/2:y=1020[v4];[v0][v1][v2][v3][v4]concat=n=5:v=1:a=0[v];[4:a]volume=1.25[voice];[5:a]volume=0.07[music];[voice][music]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[a]" -map '[v]' -map '[a]' -t "$DUR" -c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p -r 30 -c:a aac -b:a 192k -ar 48000 -ac 2 -movflags +faststart PulsoGlobal_004_Trump_Midterms_FAST.mp4
-      - name: Verify and upload
+          ffmpeg -y -stream_loop 20 -i trump.mp4 -loop 1 -i vote.jpg -loop 1 -i congress.jpg -loop 1 -i impacts.jpg -i voice.mp3 -stream_loop -1 -i music.mp3 -filter_complex "[0:v]trim=0:8,setpts=PTS-STARTPTS,scale=720:1280,setsar=1,fps=30,drawtext=fontfile=${FONT}:text='TRUMP PUEDE PERDER PODER':fontcolor=white:fontsize=48:borderw=3:bordercolor=black:x=(w-text_w)/2:y=90[v0];[1:v]trim=duration=10,setpts=PTS-STARTPTS,scale=720:1280,setsar=1,fps=30,drawtext=fontfile=${FONT}:text='54 MILLONES YA VOTARON':fontcolor=white:fontsize=46:borderw=3:bordercolor=black:x=(w-text_w)/2:y=100[v1];[2:v]trim=duration=12,setpts=PTS-STARTPTS,scale=720:1280,setsar=1,fps=30,drawtext=fontfile=${FONT}:text='CONTROL DEL CONGRESO':fontcolor=white:fontsize=46:borderw=3:bordercolor=black:x=(w-text_w)/2:y=100,drawtext=fontfile=${FONT}:text='SENADO: NOMBRAMIENTOS':fontcolor=white:fontsize=32:borderw=3:bordercolor=black:x=(w-text_w)/2:y=1120:enable='between(t,7,12)'[v2];[3:v]trim=duration=9,setpts=PTS-STARTPTS,scale=720:1280,setsar=1,fps=30,drawtext=fontfile=${FONT}:text='COMERCIO  ARANCELES  IRAN  MERCADOS':fontcolor=white:fontsize=30:borderw=3:bordercolor=black:x=(w-text_w)/2:y=100[v3];[0:v]trim=0:${END_DUR},setpts=PTS-STARTPTS,scale=720:1280,setsar=1,fps=30,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.25:t=fill,drawtext=fontfile=${FONT}:text='TRUMP MANTENDRA EL CONTROL?':fontcolor=white:fontsize=42:borderw=3:bordercolor=black:x=(w-text_w)/2:y=1020[v4];[v0][v1][v2][v3][v4]concat=n=5:v=1:a=0[v];[4:a]loudnorm=I=-15:TP=-1.5:LRA=7,volume=1.15[voice];[5:a]volume=0.025[music];[voice][music]amix=inputs=2:duration=first:dropout_transition=0:normalize=0,alimiter=limit=0.95[a]" -map '[v]' -map '[a]' -t "$DUR" -c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p -r 30 -c:a aac -b:a 192k -ar 48000 -ac 2 -movflags +faststart PulsoGlobal_004_Trump_Midterms_PUBLICABLE.mp4
+      - name: Verify final
         shell: bash
         run: |
           set -euxo pipefail
           cd work
-          ffprobe -v error -show_entries format=duration -show_entries stream=codec_name,codec_type,width,height,pix_fmt,sample_rate,channels -of json PulsoGlobal_004_Trump_Midterms_FAST.mp4 > verify.json
-          for t in 4 12 24 36 42; do ffmpeg -y -ss "$t" -i PulsoGlobal_004_Trump_Midterms_FAST.mp4 -frames:v 1 "qc_${t}.jpg"; done
+          ffprobe -v error -show_entries format=duration -show_entries stream=codec_name,codec_type,width,height,pix_fmt,sample_rate,channels -of json PulsoGlobal_004_Trump_Midterms_PUBLICABLE.mp4 > verify.json
+          ffmpeg -i PulsoGlobal_004_Trump_Midterms_PUBLICABLE.mp4 -af volumedetect -f null - 2> audio_check.txt || true
+          for t in 4 12 24 36 44; do ffmpeg -y -ss "$t" -i PulsoGlobal_004_Trump_Midterms_PUBLICABLE.mp4 -frames:v 1 "qc_${t}.jpg"; done
       - name: Upload final
         uses: actions/upload-artifact@v4
         with:
-          name: Trump-cartoon-fast-final
+          name: Trump-cartoon-publicable-final
           path: |
-            work/PulsoGlobal_004_Trump_Midterms_FAST.mp4
+            work/PulsoGlobal_004_Trump_Midterms_PUBLICABLE.mp4
             work/verify.json
+            work/audio_check.txt
             work/qc_4.jpg
             work/qc_12.jpg
             work/qc_24.jpg
             work/qc_36.jpg
-            work/qc_42.jpg
+            work/qc_44.jpg
           if-no-files-found: error
           retention-days: 7
