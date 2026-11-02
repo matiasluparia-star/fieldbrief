@@ -2,7 +2,7 @@ import express from 'express';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createWriteStream } from 'node:fs';
-import { stat, rm } from 'node:fs/promises';
+import { stat } from 'node:fs/promises';
 import { Readable } from 'node:stream';
 import path from 'node:path';
 import os from 'node:os';
@@ -41,8 +41,8 @@ async function build(){
   await Promise.all([download(VIDEO_URL,videoPath),download(VOICE_URL,voicePath)]);
   const voiceDuration=await probe(voicePath);
   await execFileP('ffmpeg',[
-    '-y','-i',videoPath,'-i',voicePath,
-    '-filter_complex','[0:v]tpad=stop_mode=clone:stop_duration=12,fps=30,format=yuv420p[v]',
+    '-y','-stream_loop','-1','-i',videoPath,'-i',voicePath,
+    '-filter_complex','[0:v]fps=30,format=yuv420p[v]',
     '-map','[v]','-map','1:a:0','-t',String(voiceDuration),
     '-c:v','libx264','-preset','veryfast','-crf','20',
     '-c:a','aac','-b:a','192k','-ar','48000','-ac','2',
@@ -53,7 +53,7 @@ async function build(){
   return {voiceDuration,finalDuration,size:s.size};
 }
 
-app.get('/health',(_req,res)=>res.json({ok:true,version:'binance-3'}));
+app.get('/health',(_req,res)=>res.json({ok:true,version:'binance-4'}));
 app.get('/build-binance',async(_req,res)=>{
   try { const result=await build(); res.json({ok:true,...result,download:'/binance-final'}); }
   catch(e){ console.error(e); res.status(500).json({ok:false,error:String(e.message||e)}); }
