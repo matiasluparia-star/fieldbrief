@@ -14,7 +14,7 @@ const publicDir = path.join(process.cwd(), 'public');
 
 app.use(express.static(publicDir));
 app.use(express.json({limit:'2mb'}));
-app.get('/health', (_req,res)=>res.json({ok:true, version:'0.3.0'}));
+app.get('/health', (_req,res)=>res.json({ok:true, version:'0.3.1'}));
 
 const upload = multer({ dest: os.tmpdir(), limits: {fileSize: 120 * 1024 * 1024, files: 26} });
 
@@ -67,7 +67,7 @@ async function renderVideo({voicePath, musicPath=null, visualPaths, interval=3, 
     const ext = path.extname(asset).toLowerCase();
     const isImage = ['.jpg','.jpeg','.png','.webp','.gif'].includes(ext);
     const common = ['-t', String(segDur), '-vf', 'scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,fps=30,format=yuv420p', '-an','-c:v','libx264','-preset','veryfast','-crf','23','-movflags','+faststart',out];
-    const args = isImage ? ['-y','-loop','1','-i',asset, ...common] : ['-y','-stream_loop','-1','-i',asset, ...common];
+    const args = isImage ? ['-y','-loop','1','-i',asset.path || asset, ...common] : ['-y','-stream_loop','-1','-i',asset.path || asset, ...common];
     await runFfmpeg(args);
     segmentFiles.push(out);
   }
@@ -130,8 +130,6 @@ app.post('/render', upload.fields([
   }
 });
 
-// Render directo desde URLs remotas. Pensado para Runway y otros assets alojados.
-// GET permite abrir el resultado directamente desde Safari/iPhone.
 app.get('/render-from-urls', async (req,res)=>{
   const work = await mkdtemp(path.join(os.tmpdir(),'pulsocut-url-'));
   try {
@@ -158,7 +156,7 @@ app.get('/render-from-urls', async (req,res)=>{
     const info = await stat(result.finalPath);
     res.setHeader('Content-Type','video/mp4');
     res.setHeader('Content-Length', String(info.size));
-    res.setHeader('Content-Disposition', 'inline; filename="PulsoGlobal-final.mp4"');
+    res.setHeader('Content-Disposition', 'attachment; filename="PulsoGlobal_Binance_FINAL.mp4"');
     res.setHeader('X-PulsoCut-Duration', result.duration.toFixed(2));
     res.sendFile(result.finalPath, async ()=>{ await rm(work,{recursive:true,force:true}); });
   } catch(err){
