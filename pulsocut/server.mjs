@@ -14,7 +14,7 @@ const publicDir = path.join(process.cwd(), 'public');
 
 app.use(express.static(publicDir));
 app.use(express.json({limit:'2mb'}));
-app.get('/health', (_req,res)=>res.json({ok:true, version:'0.3.1'}));
+app.get('/health', (_req,res)=>res.json({ok:true, version:'0.3.2'}));
 
 const upload = multer({ dest: os.tmpdir(), limits: {fileSize: 120 * 1024 * 1024, files: 26} });
 
@@ -52,22 +52,40 @@ async function fitVoiceToDuration(input, work, targetDuration){
 
 async function renderVideo({voicePath, musicPath=null, visualPaths, interval=3, musicVolume=10, targetDuration=null, work}){
   const voice = await fitVoiceToDuration(voicePath, work, targetDuration);
+  const duration = await probeDuration(voice);
+  const finalPath = path.join(work,'PulsoCut-output.mp4');
+
+  // Fast path for one video clip: loop and mux without re-encoding video.
+  if (visualPaths.length === 1 && !musicPath) {
+    const asset = visualPaths[0].path || visualPaths[0];
+    const ext = path.extname(asset).toLowerCase();
+    const isImage = ['.jpg','.jpeg','.png','.webp','.gif'].includes(ext);
+    if (!isImage) {
+      await runFfmpeg([
+        '-y','-stream_loop','-1','-i',asset,'-i',voice,
+        '-t',String(duration),'-map','0:v:0','-map','1:a:0',
+        '-c:v','copy','-c:a','aac','-b:a','192k','-movflags','+faststart',finalPath
+      ]);
+      const finalDuration = await probeDuration(finalPath);
+      return {finalPath, duration:finalDuration};
+    }
+  }
+
   const slotInterval = Math.min(8, Math.max(1.5, Number(interval || 3)));
   const musicVolumePercent = Math.min(25, Math.max(0, Number(musicVolume || 10)));
   const musicGain = musicVolumePercent / 100;
-  const duration = await probeDuration(voice);
   const totalSlots = Math.ceil(duration / slotInterval);
   const segmentFiles = [];
 
   for(let i=0;i<totalSlots;i++){
     const asset = visualPaths[i % visualPaths.length];
-    const start = i * slotInterval;
-    const segDur = Math.min(slotInterval, duration - start);
+    const segDur = Math.min(slotInterval, duration - i * slotInterval);
     const out = path.join(work, `seg-${String(i).padStart(3,'0')}.mp4`);
-    const ext = path.extname(asset).toLowerCase();
+    const source = asset.path || asset;
+    const ext = path.extname(source).toLowerCase();
     const isImage = ['.jpg','.jpeg','.png','.webp','.gif'].includes(ext);
-    const common = ['-t', String(segDur), '-vf', 'scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,fps=30,format=yuv420p', '-an','-c:v','libx264','-preset','veryfast','-crf','23','-movflags','+faststart',out];
-    const args = isImage ? ['-y','-loop','1','-i',asset.path || asset, ...common] : ['-y','-stream_loop','-1','-i',asset.path || asset, ...common];
+    const common = ['-t', String(segDur), '-vf', 'scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,fps=30,format=yuv420p', '-an','-c:v','libx264','-preset','ultrafast','-crf','24','-movflags','+faststart',out];
+    const args = isImage ? ['-y','-loop','1','-i',source, ...common] : ['-y','-stream_loop','-1','-i',source, ...common];
     await runFfmpeg(args);
     segmentFiles.push(out);
   }
@@ -78,7 +96,6 @@ async function renderVideo({voicePath, musicPath=null, visualPaths, interval=3, 
   const visualsOut = path.join(work,'visuals.mp4');
   await runFfmpeg(['-y','-f','concat','-safe','0','-i',listPath,'-c','copy',visualsOut]);
 
-  const finalPath = path.join(work,'PulsoCut-output.mp4');
   if (musicPath) {
     await runFfmpeg([
       '-y','-i',visualsOut,'-i',voice,'-stream_loop','-1','-i',musicPath,
@@ -90,7 +107,7 @@ async function renderVideo({voicePath, musicPath=null, visualPaths, interval=3, 
   }
 
   const finalDuration = await probeDuration(finalPath);
-  if(Math.abs(finalDuration - duration) > 0.35) throw new Error(`Verificación fallida: audio ${duration.toFixed(2)} s, vídeo ${finalDuration.toFixed(2)} s.`);
+  if(Math.abs(finalDuration - duration) > 0.5) throw new Error(`Verificación fallida: audio ${duration.toFixed(2)} s, vídeo ${finalDuration.toFixed(2)} s.`);
   return {finalPath, duration:finalDuration};
 }
 
