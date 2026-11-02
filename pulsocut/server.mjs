@@ -14,7 +14,7 @@ const publicDir = path.join(process.cwd(), 'public');
 
 app.use(express.static(publicDir));
 app.use(express.json({limit:'2mb'}));
-app.get('/health', (_req,res)=>res.json({ok:true, version:'0.3.3'}));
+app.get('/health', (_req,res)=>res.json({ok:true, version:'0.3.4'}));
 
 const upload = multer({ dest: os.tmpdir(), limits: {fileSize: 120 * 1024 * 1024, files: 26} });
 
@@ -110,7 +110,30 @@ async function renderVideo({voicePath, musicPath=null, visualPaths, interval=3, 
   return {finalPath, duration:finalDuration};
 }
 
-async function renderFromUrlsToResponse({voiceUrl, visualUrls, interval=3, targetDuration=null, filename='PulsoCut-output.mp4', inline=false}, res){
+async function renderBinanceSalvage({voicePath, visualPath, work}){
+  const duration = await probeDuration(voicePath);
+  const finalPath = path.join(work,'PulsoGlobal_Binance_FINAL.mp4');
+  const tail = Math.max(0.5, duration - 15);
+  const filter = [
+    '[0:v]trim=start=0:end=5,setpts=PTS-STARTPTS[v0]',
+    '[0:v]trim=start=10:end=15,setpts=PTS-STARTPTS[v1]',
+    '[0:v]trim=start=0:end=5,setpts=PTS-STARTPTS[v2]',
+    `[0:v]trim=start=10:end=${(10+tail).toFixed(3)},setpts=PTS-STARTPTS[v3]`,
+    '[v0][v1][v2][v3]concat=n=4:v=1:a=0,scale=720:1280,fps=30,format=yuv420p[vout]'
+  ].join(';');
+  await runFfmpeg([
+    '-y','-i',visualPath,'-i',voicePath,
+    '-filter_complex',filter,
+    '-map','[vout]','-map','1:a:0','-t',String(duration),
+    '-c:v','libx264','-preset','veryfast','-crf','21','-c:a','aac','-b:a','192k',
+    '-movflags','+faststart',finalPath
+  ]);
+  const finalDuration = await probeDuration(finalPath);
+  if(Math.abs(finalDuration - duration) > 0.5) throw new Error(`Verificación fallida: audio ${duration.toFixed(2)} s, vídeo ${finalDuration.toFixed(2)} s.`);
+  return {finalPath, duration:finalDuration};
+}
+
+async function renderFromUrlsToResponse({voiceUrl, visualUrls, interval=3, targetDuration=null, filename='PulsoCut-output.mp4', inline=false, salvageMode=null}, res){
   const work = await mkdtemp(path.join(os.tmpdir(),'pulsocut-url-'));
   try {
     if(!voiceUrl) return res.status(400).json({error:'Falta voice.'});
@@ -123,7 +146,9 @@ async function renderFromUrlsToResponse({voiceUrl, visualUrls, interval=3, targe
       await downloadTo(visualUrls[i], p);
       visualPaths.push(p);
     }
-    const result = await renderVideo({voicePath, visualPaths, interval, targetDuration, work});
+    const result = salvageMode === 'binance' && visualPaths.length === 1
+      ? await renderBinanceSalvage({voicePath, visualPath:visualPaths[0], work})
+      : await renderVideo({voicePath, visualPaths, interval, targetDuration, work});
     const info = await stat(result.finalPath);
     res.setHeader('Content-Type','video/mp4');
     res.setHeader('Content-Length', String(info.size));
@@ -184,7 +209,8 @@ app.get('/render-from-urls', async (req,res)=>{
     interval:req.query.interval || 3,
     targetDuration:req.query.duration || null,
     filename:'PulsoGlobal_Binance_FINAL.mp4',
-    inline:false
+    inline:false,
+    salvageMode:String(req.query.salvage || '') || null
   }, res);
 });
 
@@ -195,10 +221,9 @@ app.get('/binance-final', async (_req,res)=>{
   return renderFromUrlsToResponse({
     voiceUrl,
     visualUrls:[visualUrl],
-    interval:3,
-    targetDuration:null,
     filename:'PulsoGlobal_Binance_FINAL.mp4',
-    inline:true
+    inline:true,
+    salvageMode:'binance'
   }, res);
 });
 
