@@ -1,0 +1,83 @@
+name: Build Trump Cartoon Short
+on:
+  push:
+    branches: [pulsocut-deploy]
+    paths: ['.github/workflows/trump-cartoon-render.yml']
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+      - name: Download assets
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p work && cd work
+          TRUMP='https://dnznrvs05pmza.cloudfront.net/seedance_2_mini/cgt-20261102185915-b8wcy/Animate_this_flat_2D_editorial_cartoon_as_a_serious_news_explainer__Very_subtle_character_motion__Tr.mp4?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiNTZlYjIzNjVjNjlmZTZhYyIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc5Mzc0MTc5N30.RQKJYQgxm1Tovxi-qz9m_7J0lXijedLDN0s9GaWH1dE'
+          VOTE='https://dnznrvs05pmza.cloudfront.net/gemini/gemini-3.1-flash-lite-image/images/fd50f2fe-c32c-4ee7-a6dc-371685a5c22f/e8aa2658-40e9-49d1-a2ac-6b246ef8d1bb/Use__style_as_the_visual_style_reference_only__Create_a_vert.jpg?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiN2VkODVjYTE5YmZlNjBlYiIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc5Mzc0MDcwNX0.A6XUygcM0sVQq1SZuG6WJ4SCY2RKqw6MV1kS66rah9c'
+          CONGRESS='https://dnznrvs05pmza.cloudfront.net/gemini/gemini-3.1-flash-lite-image/images/af2c276e-0a7c-4662-a9b4-0a1aa5f29aaf/d6da1b73-633c-4ef6-87c0-72910daf05cb/Use__style_as_the_visual_style_reference_only__Create_a_vert.jpg?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiNmY2OTNlNzQyMGQwMmM5OCIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc5Mzc0MTA0NH0.NLLo-vBEJiidSJj2TYlM0WO55fEQvc6l_Tb7SjHzla8'
+          IMPACTS='https://dnznrvs05pmza.cloudfront.net/gemini/gemini-3.1-flash-lite-image/images/e4f26922-f0f2-4ee4-8494-ef5bce9a6c14/719800a1-d70e-42c5-ba69-132eb8036330/Use__style_as_the_visual_style_reference_only__Create_a_vert.jpg?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiMjBiMTExNjBkYzQxZjhkMCIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc5Mzc1ODQzMn0.NEmd7fBz0lRuqtt7axtmA-p6PTEu3kTUMqhFhl1fm8M'
+          VOICE='https://dnznrvs05pmza.cloudfront.net/text_to_speech/200d19c2-a1ee-4668-b472-c8e53aafb71c/PulsoGlobal_Trump_Midterms_voiceover.mp3?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiNmE0YmNkNTk4YjQyM2E3MCIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc5MzcyMDY2NX0.f9mmi6Qm6sXV6gwZf8zpWYFMqe0JYQjA7X9-aSc3YVk'
+          MUSIC='https://dnznrvs05pmza.cloudfront.net/lyria3-clip/82af4166-5bc6-4358-9bbc-ea0c36638ffd/PulsoGlobal_002_background_music.mp3?_jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlIYXNoIjoiZDMyZThiYTEwNjg0Njk3OCIsImJ1Y2tldCI6InJ1bndheS10YXNrLWFydGlmYWN0cyIsInN0YWdlIjoicHJvZCIsImV4cCI6MTc5MzcwMjE3N30.7RdAod2KEgkdP6ULPzivz9hG4Jx7hgBeQTIWcx45t2k'
+          curl -L --fail --retry 3 "$TRUMP" -o trump.mp4
+          curl -L --fail --retry 3 "$VOTE" -o vote.jpg
+          curl -L --fail --retry 3 "$CONGRESS" -o congress.jpg
+          curl -L --fail --retry 3 "$IMPACTS" -o impacts.jpg
+          curl -L --fail --retry 3 "$VOICE" -o voice.mp3
+          curl -L --fail --retry 3 "$MUSIC" -o music.mp3
+          ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 voice.mp3 | tee voice_duration.txt
+      - name: Render cartoon motion graphics
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd work
+          DUR=$(cat voice_duration.txt)
+          FONT='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+          # Real animated opening, normalized
+          ffmpeg -y -stream_loop 1 -i trump.mp4 -t 8 -an -vf "scale=720:1280,fps=60,setsar=1,format=yuv420p,drawtext=fontfile=${FONT}:text='MANANA VOTA EE.UU.':fontcolor=white:fontsize=54:borderw=3:bordercolor=black:x=(w-text_w)/2:y=90:enable='between(t,0.4,3.4)'" -c:v libx264 -preset fast -crf 19 -r 60 s0.mp4
+          # Voting scene: slow zoom and pan, then punch-in
+          ffmpeg -y -loop 1 -framerate 60 -t 10 -i vote.jpg -an -vf "scale=900:-2,zoompan=z='min(zoom+0.0014,1.12)':x='iw/2-(iw/zoom/2)+18*sin(on/35)':y='ih/2-(ih/zoom/2)+12*cos(on/40)':d=600:s=720x1280:fps=60,setsar=1,format=yuv420p,drawtext=fontfile=${FONT}:text='54 MILLONES YA VOTARON':fontcolor=white:fontsize=48:borderw=3:bordercolor=black:x=(w-text_w)/2:y=105:enable='between(t,3.5,8.8)'" -c:v libx264 -preset fast -crf 19 -r 60 s1.mp4
+          # Congress scene: opposing directional movement illusion
+          ffmpeg -y -loop 1 -framerate 60 -t 12 -i congress.jpg -an -vf "scale=930:-2,zoompan=z='1.08+0.025*sin(on/55)':x='iw/2-(iw/zoom/2)+24*sin(on/45)':y='ih/2-(ih/zoom/2)+18*sin(on/60)':d=720:s=720x1280:fps=60,setsar=1,format=yuv420p,drawtext=fontfile=${FONT}:text='CONTROL DEL CONGRESO':fontcolor=white:fontsize=50:borderw=3:bordercolor=black:x=(w-text_w)/2:y=100:enable='between(t,0.5,4.6)',drawtext=fontfile=${FONT}:text='BLOQUEAR  NOMBRAMIENTOS  GASTO':fontcolor=white:fontsize=34:borderw=3:bordercolor=black:x=(w-text_w)/2:y=1120:enable='between(t,5.0,11.3)'" -c:v libx264 -preset fast -crf 19 -r 60 s2.mp4
+          # International consequences
+          ffmpeg -y -loop 1 -framerate 60 -t 9 -i impacts.jpg -an -vf "scale=900:-2,zoompan=z='min(zoom+0.0010,1.09)':x='iw/2-(iw/zoom/2)+20*cos(on/40)':y='ih/2-(ih/zoom/2)+16*sin(on/43)':d=540:s=720x1280:fps=60,setsar=1,format=yuv420p,drawtext=fontfile=${FONT}:text='COMERCIO  ARANCELES  IRAN  MERCADOS':fontcolor=white:fontsize=33:borderw=3:bordercolor=black:x=(w-text_w)/2:y=95" -c:v libx264 -preset fast -crf 19 -r 60 s3.mp4
+          # Closing question from Trump animation with darker overlay
+          END_DUR=$(python -c "print(max(3.0,float('$DUR')-39.0))")
+          ffmpeg -y -stream_loop 1 -i trump.mp4 -t "$END_DUR" -an -vf "scale=760:1351,crop=720:1280:x='20+8*sin(t*0.7)':y='35+8*cos(t*0.6)',fps=60,setsar=1,format=yuv420p,drawbox=x=0:y=0:w=iw:h=ih:color=black@0.28:t=fill,drawtext=fontfile=${FONT}:text='¿TRUMP MANTENDRA EL CONTROL?':fontcolor=white:fontsize=46:borderw=3:bordercolor=black:x=(w-text_w)/2:y=1020" -c:v libx264 -preset fast -crf 19 -r 60 s4.mp4
+          printf "file 's0.mp4'\nfile 's1.mp4'\nfile 's2.mp4'\nfile 's3.mp4'\nfile 's4.mp4'\n" > list.txt
+          ffmpeg -y -f concat -safe 0 -i list.txt -c copy video_long.mp4
+          ffmpeg -y -i video_long.mp4 -t "$DUR" -c copy video_only.mp4
+          ffmpeg -y -i voice.mp3 -stream_loop -1 -i music.mp3 -filter_complex "[0:a]atrim=duration=${DUR},asetpts=PTS-STARTPTS,volume=1.25[voice];[1:a]atrim=duration=${DUR},asetpts=PTS-STARTPTS,volume=0.07[music];[voice][music]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[a]" -map '[a]' -t "$DUR" -c:a aac -b:a 192k -ar 48000 -ac 2 mixed.m4a
+          ffmpeg -y -i video_only.mp4 -i mixed.m4a -map 0:v:0 -map 1:a:0 -c:v copy -c:a copy -shortest -movflags +faststart PulsoGlobal_004_Trump_Midterms_FINAL.mp4
+      - name: Verify MP4 and QC
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd work
+          ffprobe -v error -show_streams -show_format PulsoGlobal_004_Trump_Midterms_FINAL.mp4 > ffprobe.txt
+          ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 PulsoGlobal_004_Trump_Midterms_FINAL.mp4 | tee duration.txt
+          ffmpeg -i PulsoGlobal_004_Trump_Midterms_FINAL.mp4 -af volumedetect -f null - 2> audio_check.txt || true
+          for t in 4 10 20 30 40; do ffmpeg -y -ss "$t" -i PulsoGlobal_004_Trump_Midterms_FINAL.mp4 -frames:v 1 "qc_${t}.jpg"; done
+          test -s qc_4.jpg && test -s qc_10.jpg && test -s qc_20.jpg && test -s qc_30.jpg && test -s qc_40.jpg
+      - name: Upload final and QC
+        uses: actions/upload-artifact@v4
+        with:
+          name: Trump-cartoon-final
+          path: |
+            work/PulsoGlobal_004_Trump_Midterms_FINAL.mp4
+            work/ffprobe.txt
+            work/duration.txt
+            work/audio_check.txt
+            work/voice_duration.txt
+            work/qc_4.jpg
+            work/qc_10.jpg
+            work/qc_20.jpg
+            work/qc_30.jpg
+            work/qc_40.jpg
+          if-no-files-found: error
+          retention-days: 7
