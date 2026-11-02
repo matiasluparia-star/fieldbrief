@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node binance-server.mjs"
+    "start": "node startup.mjs"
   },
   "dependencies": {
     "express": "^5.1.0",
